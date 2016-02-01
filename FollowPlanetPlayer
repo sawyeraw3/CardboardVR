@@ -32,7 +32,7 @@ public class FollowPlanetPlayer: MonoBehaviour {
 		anim = GetComponent<Animator> ();
 		rigidbody = GetComponent<Rigidbody> ();
 		planets = GameObject.FindGameObjectsWithTag ("Planet");
-
+		
 		//Obtain the closest planetoid object, while accounting for planet's surface distance from center
 		//BUT restrain enemy to planet it spawned on
 		GameObject curPlanet = planets[0];
@@ -47,10 +47,10 @@ public class FollowPlanetPlayer: MonoBehaviour {
 	
 	void Update() {
 		hitTimer += Time.deltaTime;
-
+		
 		Vector3 relativePos = transform.InverseTransformPoint(player.position).normalized;
 		Quaternion rotation = Quaternion.LookRotation(relativePos);
-
+		
 		Vector3 gravityUp = (transform.position - planet.transform.position).normalized;
 		Vector3 localUp = rigidbody.transform.up;
 		rigidbody.AddForce(gravityUp * gravity);
@@ -58,7 +58,7 @@ public class FollowPlanetPlayer: MonoBehaviour {
 		//Disable rigidbody attributes simulated in GravityAttractor
 		rigidbody.useGravity = false;
 		rigidbody.constraints = RigidbodyConstraints.FreezeRotation;
-
+		
 		rigidbody.rotation = Quaternion.FromToRotation (localUp, gravityUp) * transform.rotation * rotation;
 		
 		Vector3 targetMoveAmount = relativePos * moveSpeed;
