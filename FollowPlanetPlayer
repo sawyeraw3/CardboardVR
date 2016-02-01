@@ -1,0 +1,80 @@
+using UnityEngine;
+using System.Collections;
+
+/* Placed on enemy meant to follow player on planetoid
+ * Enemy attacks player when player is within the minDistanceToPlayer from enemy
+ */
+
+[RequireComponent (typeof (Rigidbody))]
+public class FollowPlanetPlayer: MonoBehaviour {
+
+	public float gravity = -9.8f;
+	public float moveSpeed;
+	public float minDistanceToPlayer;
+	public int damagePerStrike;
+	public float timeBetweenAttacks;
+	public LayerMask groundedMask;
+	
+
+	Vector3 localPlayerPos;
+	float hitTimer = 0;
+	Vector3 moveAmount;
+	Vector3 smoothMoveVelocity;
+	Rigidbody rigidbody;
+	Transform player;
+	GameObject planet;
+	GameObject[] planets;
+	Animator anim;
+
+
+	void Start(){
+		player = GameObject.FindGameObjectWithTag ("Player").transform;
+		anim = GetComponent<Animator> ();
+		rigidbody = GetComponent<Rigidbody> ();
+		planets = GameObject.FindGameObjectsWithTag ("Planet");
+
+		//Obtain the closest planetoid object, while accounting for planet's surface distance from center
+		//BUT restrain enemy to planet it spawned on
+		GameObject curPlanet = planets[0];
+		for (int i = 1; i < planets.Length; i++) {
+			float dist = Vector3.Distance(curPlanet.transform.position, transform.position);
+			float dist1 = Vector3.Distance(planets[i].transform.position, transform.position);
+			if (dist1 < dist)
+				curPlanet = planets[i];
+		}
+		planet = curPlanet;
+	}
+	
+	void Update() {
+		hitTimer += Time.deltaTime;
+
+		Vector3 relativePos = transform.InverseTransformPoint(player.position).normalized;
+		Quaternion rotation = Quaternion.LookRotation(relativePos);
+
+		Vector3 gravityUp = (transform.position - planet.transform.position).normalized;
+		Vector3 localUp = rigidbody.transform.up;
+		rigidbody.AddForce(gravityUp * gravity);
+		
+		//Disable rigidbody attributes simulated in GravityAttractor
+		rigidbody.useGravity = false;
+		rigidbody.constraints = RigidbodyConstraints.FreezeRotation;
+
+		rigidbody.rotation = Quaternion.FromToRotation (localUp, gravityUp) * transform.rotation * rotation;
+		
+		Vector3 targetMoveAmount = relativePos * moveSpeed;
+		moveAmount = Vector3.SmoothDamp(moveAmount,targetMoveAmount,ref smoothMoveVelocity,.15f);
+
+		//Must align minDistanceToPlayer with animator transition condition
+		float distToPlayer = Vector3.Distance(player.position, transform.position);
+		if (distToPlayer > minDistanceToPlayer) {
+			Vector3 localMove = transform.TransformDirection (moveAmount) * Time.fixedDeltaTime;
+			rigidbody.MovePosition (rigidbody.position + localMove);
+		} else {
+			if(hitTimer > timeBetweenAttacks){
+				hitTimer = 0;
+				player.GetComponent<MyPlayerHealth> ().TakeDamage (damagePerStrike);
+			}
+		}
+		anim.SetFloat("Distance", distToPlayer);
+	}
+}
