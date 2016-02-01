@@ -1,0 +1,49 @@
+using UnityEngine;
+using System.Collections;
+
+/* Placed on objects meant to be attracted to planet
+ * Allows player to move between planetoid objects while retaining artificial gravity effect
+ */
+
+[RequireComponent (typeof (Rigidbody))]
+public class PlanetBody : MonoBehaviour {
+
+	GameObject[] planets;
+	PlanetGravity planet;
+	GameObject curPlanet;
+	Rigidbody rigidbody;
+	
+	void Awake () {
+
+		rigidbody = GetComponent<Rigidbody> ();
+
+		//Disable rigidbody attributes simulated in GravityAttractor
+		rigidbody.useGravity = false;
+		rigidbody.constraints = RigidbodyConstraints.FreezeRotation;
+	}
+	
+	void FixedUpdate () {
+
+
+		//Obtain the closest planetoid object, while accounting for planet's surface distance from center
+		planets = GameObject.FindGameObjectsWithTag ("Planet");
+		
+		curPlanet = planets[0];
+		for (int i = 1; i < planets.Length; i++) {
+			float dist = Vector3.Distance(curPlanet.transform.position, transform.position) -
+				curPlanet.GetComponent<PlanetConstants>().surfaceDistFromCenter;
+			float dist1 = Vector3.Distance(planets[i].transform.position, transform.position) -
+				planets[i].GetComponent<PlanetConstants>().surfaceDistFromCenter;
+			if (dist1 < dist)
+				curPlanet = planets[i];
+		}
+
+		//Attract the body to the planetoid
+		planet = curPlanet.GetComponent<PlanetGravity>();
+		planet.Attract (rigidbody);
+	}
+
+	public GameObject getPlanet(){
+		return curPlanet;
+	}
+}
